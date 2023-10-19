@@ -1,7 +1,7 @@
-const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
-const express = require('express');
-require('dotenv').config()
-const cors = require('cors');
+const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
+const express = require("express");
+require("dotenv").config();
+const cors = require("cors");
 const port = process.env.PORT || 5000;
 const app = express();
 
@@ -16,7 +16,7 @@ const client = new MongoClient(uri, {
     version: ServerApiVersion.v1,
     strict: true,
     deprecationErrors: true,
-  }
+  },
 });
 
 async function run() {
@@ -25,50 +25,108 @@ async function run() {
     await client.connect();
 
     //data collection
-    const dataCollection = client.db('brandShopDB').collection('data');
-    const cartCollection = client.db('brandShopDB').collection('cart');
+    const dataCollection = client.db("brandShopDB").collection("data");
+    const cartCollection = client.db("brandShopDB").collection("cart");
 
-   
-    app.get('/details/:id', async (req, res) => {
-        const id = req.params.id;
-        const query = ({ _id: new ObjectId(id) })
-        const result = await dataCollection.findOne(query);
-        res.send(result);
-    })
+    app.get("/details/:id", async (req, res) => {
+      const id = req.params.id;
+      const query = { _id: new ObjectId(id) };
+      const result = await dataCollection.findOne(query);
+      res.send(result);
+    });
 
-  
-    //create api for all cetagory data 
-    app.get('/data/:id',async(req,res)=>{
-        const brandName = req.params.id;
-        console.log(brandName)
-        const query = { brandName: brandName }  
-        const cursor = dataCollection.find(query);
-        const result = await cursor.toArray()
-        res.send(result)
-    })
+    //create api for all cetagory data
+    app.get("/data/:id", async (req, res) => {
+      const brandName = req.params.id;
+      const query = { brandName: brandName };
+      const cursor = dataCollection.find(query);
+      const result = await cursor.toArray();
+      res.send(result);
+    });
 
-    app.get('/data',async(req,res)=>{
-        const query = dataCollection.find();
+    app.get("/data", async (req, res) => {
+      const query = dataCollection.find();
 
-        const result = await query.toArray()
-        res.send(result)
-    })
+      const result = await query.toArray();
+      res.send(result);
+    });
 
-    app.post('/carts',async(req,res)=>{
-        const cartData = req.body;
-        const result = await cartCollection.insertOne(cartData);
-        res.send(result)
-    })
+    // app.get('/update/:id',async(req,res)=>{
+    //     const id = req.params.id;
+    //     const query = {_id: new ObjectId(id)}
+    //     const result =await cartCollection.findOne(query)
+    //     console.log(query)
+    //    res.send(result)
+    // })
 
-    app.post('/data',async(req,res)=>{
-        const data = req.body;
-        const result = await dataCollection.insertOne(data)
-        res.send(result)
-    })
+    app.get("/update/:id", async (req, res) => {
+      const id = req.params.id;
+      const query = { _id: new ObjectId(id) };
+      const result = await dataCollection.findOne(query);
+      res.send(result);
+    });
+
+    app.put("/updateCart/:id", async (req, res) => {
+      const id = req.params.id;
+      const {
+        brandName,
+        description,
+        name,
+        photo,
+        price,
+        rating,
+        selectedOption,
+      } = req.body;
+      const filter = { _id: new ObjectId(id) };
+      const updateDoc = {
+        $set: {
+          name: name,
+          description: description,
+          photo: photo,
+          price: price,
+          selectedOption: selectedOption,
+          brandName: brandName,
+          rating: rating
+        },
+      };
+      const result = await dataCollection.updateOne(
+        filter,
+        updateDoc,
+      );
+      res.send(result);
+    });
+
+    app.get("/carts/:email", async (req, res) => {
+      const email = req.params.email;
+      const query = { email: email };
+      const result = await cartCollection.find(query).toArray();
+      res.send(result);
+    });
+
+    app.delete("/carts/:id", async (req, res) => {
+      const id = req.params.id;
+      const query = { _id: new ObjectId(id) };
+      const result = await cartCollection.deleteOne(query);
+      res.send(result);
+    });
+
+    app.post("/carts", async (req, res) => {
+      const cartData = req.body;
+      const result = await cartCollection.insertOne(cartData);
+      res.send(result);
+    });
+
+    app.post("/data", async (req, res) => {
+      const data = req.body;
+      const result = await dataCollection.insertOne(data);
+      res.send(result);
+    });
 
     // Send a ping to confirm a successful connection
     await client.db("admin").command({ ping: 1 });
-    console.log("Pinged your deployment. You successfully connected to MongoDB!");
+    console.log(
+      "Pinged your deployment. You successfully connected to MongoDB!"
+    );
   } finally {
     // Ensures that the client will close when you finish/error
     // await client.close();
@@ -76,12 +134,10 @@ async function run() {
 }
 run().catch(console.dir);
 
-app.get('/',(req,res)=>{
-    res.send('BrandShop server is running')
-})
+app.get("/", (req, res) => {
+  res.send("BrandShop server is running");
+});
 
-
-app.listen(port,()=>{
-    console.log(`BrandShop app listening on port ${port} `)
-} )
-
+app.listen(port, () => {
+  console.log(`BrandShop app listening on port ${port} `);
+});
