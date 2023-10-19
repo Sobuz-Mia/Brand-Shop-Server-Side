@@ -26,6 +26,7 @@ async function run() {
 
     //data collection
     const dataCollection = client.db('brandShopDB').collection('data');
+    const cartCollection = client.db('brandShopDB').collection('cart');
 
    
     app.get('/details/:id', async (req, res) => {
@@ -50,6 +51,12 @@ async function run() {
         const query = dataCollection.find();
 
         const result = await query.toArray()
+        res.send(result)
+    })
+
+    app.post('/carts',async(req,res)=>{
+        const cartData = req.body;
+        const result = await cartCollection.insertOne(cartData);
         res.send(result)
     })
 
