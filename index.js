@@ -8,7 +8,7 @@ app.use(cors());
 app.use(express.json());
 //BrandShop 
 //l1e6UKxfVTqlWbMj
-console.log(process.env.DB_Pass)
+// console.log(process.env.DB_Pass)
 
 const uri = `mongodb+srv://BrandShop:l1e6UKxfVTqlWbMj@cluster0.sbw5eqf.mongodb.net/?retryWrites=true&w=majority`;
 
@@ -32,6 +32,14 @@ async function run() {
     app.post('/data',async(req,res)=>{
         const data = req.body;
         const result = await dataCollection.insertOne(data)
+        res.send(result)
+    })
+
+    app.get('/data/:id',async(req,res)=>{
+        const brandName = req.params.id;
+        const query = { brandName: brandName }
+        const cursor = dataCollection.find(query);
+        const result = await cursor.toArray()
         res.send(result)
     })
 
