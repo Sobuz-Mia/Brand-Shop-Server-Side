@@ -50,15 +50,7 @@ async function run() {
       const result = await query.toArray();
       res.send(result);
     });
-
-    // app.get('/update/:id',async(req,res)=>{
-    //     const id = req.params.id;
-    //     const query = {_id: new ObjectId(id)}
-    //     const result =await cartCollection.findOne(query)
-    //     console.log(query)
-    //    res.send(result)
-    // })
-
+    //cart collection start
     app.get("/update/:id", async (req, res) => {
       const id = req.params.id;
       const query = { _id: new ObjectId(id) };
