@@ -2,19 +2,24 @@ const express = require("express");
 const app = express();
 const cors = require("cors");
 require("dotenv").config();
+const jwt = require('jsonwebtoken');
+const cookieParser = require('cookie-parser')
 const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 const port = process.env.PORT || 5000;
 
-// const corsConfig = {
-//   origin: '*',
-//   credentials: true,
-//   methods: ['GET', 'POST', 'PUT','PATCH', 'DELETE']
-//   }
-  app.use(cors())
+app.use(cors({
+  origin:['http://localhost:5173'],
+  credentials:true
+}));
 app.use(express.json());
+app.use(cookieParser())
 
 
-const uri =` mongodb+srv://${process.env.USER_NAME}:${process.env.USER_PASS}@cluster0.sbw5eqf.mongodb.net/?retryWrites=true&w=majority`;
+
+// vercel link
+// https://brandshop-server-side-jygvx8slj-sobuzs-projects.vercel.app
+
+const uri = `mongodb+srv://${process.env.USER_NAME}:${process.env.USER_PASS}@cluster0.sbw5eqf.mongodb.net/?retryWrites=true&w=majority`;
 
 const client = new MongoClient(uri, {
   serverApi: {
@@ -24,12 +29,56 @@ const client = new MongoClient(uri, {
   },
 });
 
+// verify cookies
+
+const tokenVerify = async (req,res,next) =>{
+  const token = req.cookies?.accessToken;
+  if(!token){
+    res.status(401).send({message:'Unauthorized'})
+    return
+  }
+  jwt.verify(token,process.env.ACCESS_TOKEN,(error,decoded)=>{
+    if(error){
+      return res.status(402).send({message:'Forbidden'})
+    }
+    req.user = decoded;
+    next();
+  })
+  
+}
+// const verify = async (req, res, next) => {
+//   const token = req.cookies?.accessToken;
+//   if (!token) {
+//     return res.status(401).send({ message: "Unauthorized" });
+//   }
+//   jwt.verify(token, process.env.ACCESS_TOKEN, (error, decoded) => {
+//     if (error) {
+//       console.log(error);
+//       return res.status(401).send({ message: "forbidden" });
+//     }
+//     req.user = decoded;
+//     next();
+//   });
+// };
 async function run() {
   try {
     // await client.connect();
 
-const dataCollection = client.db("brandShopDB").collection("data");
+    const dataCollection = client.db("brandShopDB").collection("data");
     const cartCollection = client.db("brandShopDB").collection("cart");
+
+    // jsonwebtoken start here
+
+    app.post('/jwt',async(req,res)=>{
+      const user = req.body;
+      const token = jwt.sign(user,process.env.ACCESS_TOKEN,{expiresIn:'1h'})
+      res
+      .cookie('accessToken',token,{
+        httpOnly:true,
+        secure:false
+      })
+      .send({status:'success'})
+    })
 
     app.get("/details/:id", async (req, res) => {
       const id = req.params.id;
@@ -47,9 +96,8 @@ const dataCollection = client.db("brandShopDB").collection("data");
       res.send(result);
     });
 
-    app.get("/data", async (req, res) => {
+    app.get("/data",async (req, res) => {
       const query = dataCollection.find();
-
       const result = await query.toArray();
       res.send(result);
     });
@@ -81,18 +129,19 @@ const dataCollection = client.db("brandShopDB").collection("data");
           price: price,
           selectedOption: selectedOption,
           brandName: brandName,
-          rating: rating
+          rating: rating,
         },
       };
-      const result = await dataCollection.updateOne(
-        filter,
-        updateDoc,
-      );
+      const result = await dataCollection.updateOne(filter, updateDoc);
       res.send(result);
     });
 
-    app.get("/carts/:email", async (req, res) => {
+    app.get("/carts/:email",tokenVerify,  async (req, res) => {
       const email = req.params.email;
+      if(req.params.email !== req.user?.email){
+        return res.status(403).send({message:'forbidden'})
+      }
+      // console.log(req.user.email);
       const query = { email: email };
       const result = await cartCollection.find(query).toArray();
       res.send(result);
@@ -122,10 +171,7 @@ const dataCollection = client.db("brandShopDB").collection("data");
     );
   } catch (error) {
     console.error("Error: " + error.message);
-  } finally {
-    // Ensure that the client will close when you finish/error
-    // await client.close();
-  }
+  } 
 }
 
 run().catch(console.error);
